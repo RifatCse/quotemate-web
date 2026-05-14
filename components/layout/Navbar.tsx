@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import GetAppButton from "@/components/ui/GetAppButton";
 
 const NAV_LINKS = [
@@ -34,20 +35,13 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--primary)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="QuoteMate"
+            width={36}
+            height={36}
+            className="object-contain"
+          />
           <span className="font-bold text-[--text] text-sm tracking-tight">
             QuoteMate
           </span>
@@ -71,7 +65,7 @@ export default function Navbar() {
           <GetAppButton size="sm" className="hidden sm:inline-flex" />
           <a
             href="#waitlist"
-            className="px-4 py-2 rounded-lg bg-[--primary] text-white text-sm font-semibold hover:bg-purple-500 transition-colors"
+            className="px-4 py-2 rounded-lg bg-[--primary] text-white text-sm font-semibold hover:bg-green-600 transition-colors"
           >
             Join Waitlist
           </a>

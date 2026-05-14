@@ -26,13 +26,15 @@ export async function POST(request: NextRequest) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseKey = serviceKey && !serviceKey.startsWith("eyJ...") ? serviceKey : anonKey;
 
     // If Supabase is not configured, return success (dev/preview mode)
-    if (!supabaseUrl || !serviceKey) {
+    if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json({ success: true, data: { email } });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { error } = await supabase.from("waitlist").insert({
       email: email.toLowerCase().trim(),

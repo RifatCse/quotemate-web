@@ -98,7 +98,7 @@ export default function Pricing() {
           {/* Pro card */}
           <motion.div
             className="relative glass-card p-8 glow-purple"
-            style={{ borderColor: "rgba(139,92,246,0.3)" }}
+            style={{ borderColor: "rgba(0,132,61,0.3)" }}
             initial={reduced ? false : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -131,7 +131,7 @@ export default function Pricing() {
 
             <a
               href="#waitlist"
-              className="block w-full py-3 rounded-xl text-center text-sm font-semibold transition-all mb-6 hover:bg-purple-500"
+              className="block w-full py-3 rounded-xl text-center text-sm font-semibold transition-all mb-6 hover:bg-green-600"
               style={{ background: "var(--primary)", color: "white" }}
             >
               Join the Waitlist

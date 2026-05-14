@@ -26,7 +26,7 @@ export default function Hero() {
     <section
       className="relative min-h-screen flex items-center justify-center px-4 pt-24 pb-16 overflow-hidden"
       style={{
-        background: 'radial-gradient(ellipse at 60% 10%, #1e1040 0%, #080808 60%)',
+        background: 'radial-gradient(ellipse at 60% 10%, #031a0e 0%, #080808 60%)',
       }}
     >
       {/* ── 3D canvas fills the entire section ── */}

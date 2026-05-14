@@ -21,11 +21,11 @@ function GearShape({
     groupRef.current.rotation.y = Math.sin(t * 0.28) * 0.38;
   });
 
-  const TEETH   = 10;
+  const TEETH   = 16;
   const R       = 0.75;
-  const TOOTH_H = R * 0.17;
-  const TOOTH_W = (2 * Math.PI * R) / TEETH * 0.44;
-  const THICK   = 0.30;
+  const TOOTH_H = R * 0.20;
+  const TOOTH_W = (2 * Math.PI * R) / TEETH * 0.30;
+  const THICK   = 0.22;
 
   return (
     <Float speed={1.6} floatIntensity={0.5} rotationIntensity={0.2}>

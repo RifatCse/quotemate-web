@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import WaitlistForm from "@/components/ui/WaitlistForm";
 import GetAppButton from "@/components/ui/GetAppButton";
@@ -55,20 +56,15 @@ export default function CTA() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.5 }}
         >
-          {/* Icon */}
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-            style={{ background: "var(--primary-bg)", border: "1px solid rgba(139,92,246,0.2)" }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                stroke="var(--primary)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/logo.png"
+              alt="QuoteMate"
+              width={72}
+              height={72}
+              className="object-contain"
+            />
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[--text] mb-3">

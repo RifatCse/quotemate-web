@@ -71,8 +71,8 @@ export default function GetAppButton({ size = 'md', className = '' }: GetAppButt
         textDecoration: 'none',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 24px rgba(139,92,246,0.3)';
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.5)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 24px rgba(0,132,61,0.3)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,132,61,0.5)';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 0 transparent';
