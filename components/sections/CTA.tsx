@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { motion, useReducedMotion } from "framer-motion";
 import WaitlistForm from "@/components/ui/WaitlistForm";
+import GetAppButton from "@/components/ui/GetAppButton";
 
 const FloatingCrystal = dynamic(
   () => import("@/components/three/FloatingCrystal"),
@@ -85,6 +86,11 @@ export default function CTA() {
           </p>
 
           <WaitlistForm />
+
+          {/* Get the app */}
+          <div className="flex justify-center mt-5 mb-2">
+            <GetAppButton size="md" />
+          </div>
 
           {/* Badges */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">

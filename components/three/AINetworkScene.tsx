@@ -2,205 +2,243 @@
 
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sparkles } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import { ThreeErrorBoundary } from './ThreeErrorBoundary';
 
-// ─── Network node ─────────────────────────────────────────────────────────
-function Node({
-  position,
+// ─── Colour palette — warm Australian trade ────────────────────────────────
+const GOLD  = '#f59e0b';
+const AMBER = '#fbbf24';
+const CARP  = '#fb923c';  // carpenter orange / warm accent
+
+// ─── Single gear geometry (all in XY plane, viewed face-on from +Z) ───────
+function GearMesh({
+  baseRadius,
+  teethCount,
   color,
-  size = 0.08,
-  emissive = 2,
+  thickness = 0.30,
 }: {
-  position: [number, number, number];
+  baseRadius: number;
+  teethCount: number;
   color: string;
-  size?: number;
-  emissive?: number;
+  thickness?: number;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const pulse = 1 + Math.sin(t * 2 + position[0]) * 0.15;
-    meshRef.current.scale.setScalar(pulse);
-  });
-  return (
-    <mesh ref={meshRef} position={position}>
-      <sphereGeometry args={[size, 10, 10]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissive} />
-    </mesh>
-  );
-}
-
-// ─── Connection line between nodes ────────────────────────────────────────
-function Connection({
-  start,
-  end,
-  color = '#8b5cf6',
-  opacity = 0.25,
-}: {
-  start: [number, number, number];
-  end: [number, number, number];
-  color?: string;
-  opacity?: number;
-}) {
-  const lineRef = useRef<THREE.Line>(null!);
-
-  const geometry = useMemo(() => {
-    const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
-    return new THREE.BufferGeometry().setFromPoints(points);
-  }, [start, end]);
-
-  return (
-    // @ts-expect-error — Line extends Object3D but tsx types are strict
-    <line ref={lineRef} geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
-  );
-}
-
-// ─── Central AI orb ───────────────────────────────────────────────────────
-function AIOrb() {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  const ringRef = useRef<THREE.Mesh>(null!);
-  const ring2Ref = useRef<THREE.Mesh>(null!);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    meshRef.current.rotation.y = t * 0.2;
-    meshRef.current.rotation.x = Math.sin(t * 0.3) * 0.2;
-    ringRef.current.rotation.z = t * 0.5;
-    ring2Ref.current.rotation.x = t * 0.35;
-    // Breathe
-    const s = 1 + Math.sin(t * 0.8) * 0.05;
-    meshRef.current.scale.setScalar(s);
-  });
+  const TOOTH_H = baseRadius * 0.15;
+  const TOOTH_W = (2 * Math.PI * baseRadius) / teethCount * 0.44;
 
   return (
     <group>
-      {/* Core */}
-      <mesh ref={meshRef}>
-        <dodecahedronGeometry args={[0.6, 0]} />
+      {/* Main disk — cylinder rotated so flat face points at camera (+Z) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[baseRadius, baseRadius, thickness, 40]} />
         <meshStandardMaterial
-          color="#7c3aed"
-          emissive="#5b21b6"
-          emissiveIntensity={0.8}
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.28}
+          metalness={0.88}
           roughness={0.1}
-          metalness={0.95}
-          wireframe={false}
         />
       </mesh>
 
-      {/* Inner glow sphere */}
-      <mesh>
-        <sphereGeometry args={[0.75, 16, 16]} />
-        <meshBasicMaterial color="#8b5cf6" transparent opacity={0.05} />
+      {/* Inner decorative hub ring */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[baseRadius * 0.45, baseRadius * 0.45, thickness + 0.01, 24]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.14}
+          metalness={0.85}
+          roughness={0.18}
+          transparent
+          opacity={0.82}
+        />
       </mesh>
 
-      {/* Rings */}
-      <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.0, 0.012, 6, 80]} />
-        <meshBasicMaterial color="#a78bfa" transparent opacity={0.6} />
+      {/* Center bore */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[baseRadius * 0.18, baseRadius * 0.18, thickness + 0.02, 12]} />
+        <meshStandardMaterial color="#060604" metalness={0.5} roughness={0.4} />
       </mesh>
-      <mesh ref={ring2Ref} rotation={[0.8, 0.4, 0]}>
-        <torusGeometry args={[1.25, 0.008, 6, 80]} />
-        <meshBasicMaterial color="#60a5fa" transparent opacity={0.35} />
+
+      {/* 3 spokes */}
+      {[0, 1, 2].map((i) => (
+        <mesh key={`sp${i}`} rotation={[0, 0, (i * Math.PI) / 3]}>
+          <boxGeometry args={[baseRadius * 0.95, baseRadius * 0.042, thickness * 0.58]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={0.22}
+            metalness={0.88}
+            roughness={0.1}
+          />
+        </mesh>
+      ))}
+
+      {/* Teeth */}
+      {Array.from({ length: teethCount }).map((_, i) => {
+        const angle = (i / teethCount) * Math.PI * 2;
+        const cx = Math.cos(angle) * (baseRadius + TOOTH_H / 2);
+        const cy = Math.sin(angle) * (baseRadius + TOOTH_H / 2);
+        return (
+          <mesh key={i} position={[cx, cy, 0]} rotation={[0, 0, angle]}>
+            <boxGeometry args={[TOOTH_H, TOOTH_W, thickness]} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.28}
+              metalness={0.9}
+              roughness={0.1}
+            />
+          </mesh>
+        );
+      })}
+
+      {/* Outer torus ring (accent) */}
+      <mesh>
+        <torusGeometry args={[baseRadius + TOOTH_H + 0.03, 0.011, 6, 80]} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} />
       </mesh>
     </group>
   );
 }
 
-// ─── Animated connection pulse ─────────────────────────────────────────────
-function PulsingPath({
-  start,
-  end,
+// ─── Animated gear wrapper ─────────────────────────────────────────────────
+function Gear({
+  position,
+  baseRadius,
+  teethCount,
+  color,
+  speed,
+  initialAngle = 0,
 }: {
-  start: [number, number, number];
-  end: [number, number, number];
+  position: [number, number, number];
+  baseRadius: number;
+  teethCount: number;
+  color: string;
+  speed: number;
+  initialAngle?: number;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  const speed = 0.4 + Math.random() * 0.4;
-  const offset = Math.random() * Math.PI * 2;
+  const groupRef = useRef<THREE.Group>(null!);
 
   useFrame(({ clock }) => {
-    const t = (clock.getElapsedTime() * speed + offset) % 1;
-    meshRef.current.position.x = start[0] + (end[0] - start[0]) * t;
-    meshRef.current.position.y = start[1] + (end[1] - start[1]) * t;
-    meshRef.current.position.z = start[2] + (end[2] - start[2]) * t;
-    meshRef.current.visible = t < 0.95;
+    groupRef.current.rotation.z = clock.getElapsedTime() * speed + initialAngle;
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[0.04, 6, 6]} />
-      <meshStandardMaterial color="#c4b5fd" emissive="#c4b5fd" emissiveIntensity={4} />
-    </mesh>
+    <group ref={groupRef} position={position}>
+      <GearMesh baseRadius={baseRadius} teethCount={teethCount} color={color} />
+    </group>
   );
 }
 
-// ─── Full network scene ────────────────────────────────────────────────────
-const NODES: { pos: [number, number, number]; color: string; label: string }[] = [
-  { pos: [-3.5, 1.2, -1],   color: '#60a5fa', label: 'Voice AI' },
-  { pos: [-3.0, -1.4, 0.5], color: '#34d399', label: 'Photo AI' },
-  { pos: [3.2, 1.5, -0.8],  color: '#f472b6', label: 'GST Engine' },
-  { pos: [3.5, -1.0, 1.0],  color: '#fbbf24', label: 'PDF Gen' },
-  { pos: [-1.5, 2.8, 0.2],  color: '#a78bfa', label: 'Rate Cards' },
-  { pos: [1.8, 2.6, -0.5],  color: '#e879f9', label: 'Xero Sync' },
-  { pos: [-2.0, -2.6, -0.8],color: '#38bdf8', label: 'ABN Check' },
-  { pos: [2.2, -2.4, 0.8],  color: '#fb923c', label: 'Client Hub' },
-];
+// ─── Warm dust / spark particles ──────────────────────────────────────────
+function GearDust() {
+  const ref = useRef<THREE.Points>(null!);
 
-function NetworkScene() {
+  const { geo, speeds } = useMemo(() => {
+    const count = 55;
+    const positions = new Float32Array(count * 3);
+    const speeds = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3]     = (Math.random() - 0.5) * 12;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 9;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 4;
+      speeds[i] = 0.003 + Math.random() * 0.006;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return { geo: g, speeds };
+  }, []);
+
+  useFrame(() => {
+    const pos = geo.attributes.position.array as Float32Array;
+    for (let i = 0; i < 55; i++) {
+      pos[i * 3 + 1] += speeds[i];
+      if (pos[i * 3 + 1] > 4.5) pos[i * 3 + 1] = -4.5;
+    }
+    geo.attributes.position.needsUpdate = true;
+  });
+
   return (
-    <>
-      <ambientLight intensity={0.15} />
-      <pointLight color="#8b5cf6" intensity={3} position={[0, 0, 3]} />
-      <pointLight color="#3b82f6" intensity={2} position={[3, 2, 0]} />
-      <pointLight color="#ec4899" intensity={1.5} position={[-3, -2, 1]} />
-
-      {/* Central AI orb */}
-      <Float speed={1} floatIntensity={0.3}>
-        <AIOrb />
-      </Float>
-
-      {/* Outer nodes */}
-      {NODES.map((n) => (
-        <Float key={n.label} speed={0.8 + Math.random()} floatIntensity={0.4}>
-          <Node position={n.pos} color={n.color} size={0.1} emissive={2.5} />
-        </Float>
-      ))}
-
-      {/* Connections from center to each node */}
-      {NODES.map((n) => (
-        <Connection key={`c-${n.label}`} start={[0, 0, 0]} end={n.pos} color={n.color} opacity={0.2} />
-      ))}
-
-      {/* Pulsing data packets */}
-      {NODES.map((n) => (
-        <PulsingPath key={`p-${n.label}`} start={[0, 0, 0]} end={n.pos} />
-      ))}
-
-      {/* Sparkles */}
-      <Sparkles count={80} scale={8} size={0.8} speed={0.2} opacity={0.5} color="#c4b5fd" />
-
-      <EffectComposer>
-        <Bloom intensity={1.8} luminanceThreshold={0.1} luminanceSmoothing={0.8} mipmapBlur />
-      </EffectComposer>
-    </>
+    <points ref={ref} geometry={geo}>
+      <pointsMaterial color={AMBER} size={0.032} transparent opacity={0.38} sizeAttenuation />
+    </points>
   );
 }
 
-import { ThreeErrorBoundary } from './ThreeErrorBoundary';
+// ─── Scene — parent tilts gently to reveal 3-D depth ─────────────────────
+function GearScene() {
+  const sceneRef = useRef<THREE.Group>(null!);
 
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    sceneRef.current.rotation.x = Math.sin(t * 0.11) * 0.22;
+    sceneRef.current.rotation.y = Math.sin(t * 0.08) * 0.18;
+  });
+
+  return (
+    <group ref={sceneRef}>
+      {/* Lights */}
+      <ambientLight intensity={0.18} />
+      <pointLight color={GOLD}   intensity={5}   distance={14} position={[1, 2, 4]} />
+      <pointLight color="#fff4d6" intensity={2.5} distance={10} position={[-3, -1, 3]} />
+      <pointLight color={CARP}   intensity={1.8} distance={8}  position={[3, -2, 2]} />
+
+      {/* Subtle blueprint-grid backdrop */}
+      <gridHelper
+        args={[18, 18, '#18100a', '#0e0804']}
+        // @ts-expect-error — rotation prop accepted at runtime by R3F
+        rotation={[Math.PI / 2, 0, 0]}
+        position={[0, 0, -1.6]}
+      />
+
+      {/*
+        Three interlocking gears.
+        Speed ratios satisfy ω_B = -ω_A * r_A / r_B so teeth mesh in sync.
+
+        Gear A (centre):   r=1.1, 12 teeth, speed=+0.22 rad/s
+        Gear B (right):    r=0.85, 9 teeth, speed=-0.285 rad/s  (-0.22 × 1.1/0.85)
+        Gear C (left):     r=0.65, 7 teeth, speed=-0.372 rad/s  (-0.22 × 1.1/0.65)
+      */}
+      <Gear
+        position={[0, 0, 0]}
+        baseRadius={1.1}
+        teethCount={12}
+        color={GOLD}
+        speed={0.22}
+        initialAngle={0}
+      />
+      <Gear
+        position={[2.35, 0.05, -0.3]}
+        baseRadius={0.85}
+        teethCount={9}
+        color={AMBER}
+        speed={-0.285}
+        initialAngle={Math.PI / 9}
+      />
+      <Gear
+        position={[-2.1, 0.18, -0.2]}
+        baseRadius={0.65}
+        teethCount={7}
+        color={CARP}
+        speed={-0.372}
+        initialAngle={Math.PI / 7}
+      />
+
+      <GearDust />
+    </group>
+  );
+}
+
+// ─── Canvas wrapper ────────────────────────────────────────────────────────
 function AINetworkSceneInner() {
   return (
     <Canvas
-      camera={{ position: [0, 0, 6], fov: 60 }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      dpr={[1, 1.5]}
+      camera={{ position: [0, 0, 6.5], fov: 58 }}
+      gl={{ antialias: true, alpha: true }}
+      dpr={[1, 1]}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <NetworkScene />
+      <GearScene />
     </Canvas>
   );
 }

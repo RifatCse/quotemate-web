@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import Badge from '@/components/ui/Badge';
 import GradientText from '@/components/ui/GradientText';
 import WaitlistForm from '@/components/ui/WaitlistForm';
+import GetAppButton from '@/components/ui/GetAppButton';
 
 // Load 3D canvas only on client — no SSR
 const HeroScene = dynamic(() => import('@/components/three/HeroScene'), { ssr: false });
@@ -113,12 +114,22 @@ export default function Hero() {
 
         {/* CTA */}
         <motion.div
-          className="mb-10"
+          className="mb-6"
           initial={reduced ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.9 }}
         >
           <WaitlistForm />
+        </motion.div>
+
+        {/* Get the app button */}
+        <motion.div
+          className="flex justify-center mb-10"
+          initial={reduced ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1.0 }}
+        >
+          <GetAppButton size="lg" />
         </motion.div>
 
         {/* Trust tags */}

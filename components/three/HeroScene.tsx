@@ -1,290 +1,227 @@
 'use client';
 
 import { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import {
-  Sparkles,
-  Stars,
-  Float,
-  MeshDistortMaterial,
-  GradientTexture,
-  Trail,
-  Torus,
-} from '@react-three/drei';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
+import { ThreeErrorBoundary } from './ThreeErrorBoundary';
 
-// ─── Central holographic orb ───────────────────────────────────────────────
-function CoreOrb() {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  const wireRef = useRef<THREE.Mesh>(null!);
+// ─── Colour palette — warm Australian trade ────────────────────────────────
+const GOLD   = '#f59e0b';
+const AMBER  = '#fbbf24';
+const ELEC   = '#60a5fa'; // electrician blue
+const PLUMB  = '#34d399'; // plumber green
+const PAINT  = '#f472b6'; // painter pink
+const CARP   = '#fb923c'; // carpenter orange
+const ROOF   = '#a78bfa'; // roofer purple (brand)
+
+// ─── Central spanner / wrench ─────────────────────────────────────────────
+function Spanner() {
+  const groupRef = useRef<THREE.Group>(null!);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    meshRef.current.rotation.x = t * 0.08;
-    meshRef.current.rotation.y = t * 0.14;
-    wireRef.current.rotation.x = -t * 0.06;
-    wireRef.current.rotation.y = t * 0.10;
-    // Pulsing scale
-    const pulse = 1 + Math.sin(t * 1.2) * 0.04;
-    meshRef.current.scale.setScalar(pulse);
+    groupRef.current.rotation.z = Math.sin(t * 0.35) * 0.18;
+    groupRef.current.rotation.y = t * 0.12;
   });
 
+  const mat = (
+    <meshStandardMaterial
+      color={GOLD}
+      emissive={AMBER}
+      emissiveIntensity={0.35}
+      metalness={0.92}
+      roughness={0.08}
+    />
+  );
+
   return (
-    <group>
-      {/* Solid distorted sphere */}
-      <mesh ref={meshRef}>
-        <icosahedronGeometry args={[1.6, 4]} />
-        <MeshDistortMaterial
-          color="#7c3aed"
-          emissive="#5b21b6"
-          emissiveIntensity={0.6}
-          distort={0.35}
-          speed={2}
-          roughness={0.1}
-          metalness={0.8}
-          transparent
-          opacity={0.85}
-        />
+    <group ref={groupRef}>
+      {/* Handle — tapered bar */}
+      <mesh position={[0, -0.72, 0]}>
+        <boxGeometry args={[0.28, 1.5, 0.18]} />
+        {mat}
       </mesh>
 
-      {/* Outer wireframe */}
-      <mesh ref={wireRef}>
-        <icosahedronGeometry args={[1.85, 1]} />
-        <meshBasicMaterial
-          color="#a78bfa"
-          wireframe
-          transparent
-          opacity={0.18}
-        />
+      {/* Grip ridges on handle */}
+      {[-0.6, -0.3, 0.0, 0.3].map((y) => (
+        <mesh key={y} position={[0, y - 0.35, 0.1]}>
+          <boxGeometry args={[0.3, 0.055, 0.04]} />
+          <meshStandardMaterial color={AMBER} metalness={0.85} roughness={0.1} />
+        </mesh>
+      ))}
+
+      {/* Hex head (6-sided nut shape) */}
+      <mesh position={[0, 0.82, 0]}>
+        <cylinderGeometry args={[0.54, 0.54, 0.2, 6]} />
+        {mat}
+      </mesh>
+
+      {/* Inner hex hole */}
+      <mesh position={[0, 0.82, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.22, 6]} />
+        <meshStandardMaterial color="#0a0600" metalness={0.4} roughness={0.5} />
+      </mesh>
+
+      {/* Neck connecting handle to head */}
+      <mesh position={[0, 0.3, 0]}>
+        <cylinderGeometry args={[0.16, 0.14, 0.45, 8]} />
+        {mat}
       </mesh>
     </group>
   );
 }
 
-// ─── Orbiting rings ────────────────────────────────────────────────────────
+// ─── Floating trade tool shapes ────────────────────────────────────────────
+function TradeTool({
+  position,
+  color,
+  shape,
+  speed,
+  offset,
+}: {
+  position: [number, number, number];
+  color: string;
+  shape: 'bolt' | 'drop' | 'brush' | 'beam' | 'tile';
+  speed: number;
+  offset: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() * speed + offset;
+    meshRef.current.rotation.x = t * 0.6;
+    meshRef.current.rotation.y = t * 0.9;
+    meshRef.current.position.y = position[1] + Math.sin(clock.getElapsedTime() * 0.7 + offset) * 0.25;
+  });
+
+  const mat = (
+    <meshStandardMaterial
+      color={color}
+      emissive={color}
+      emissiveIntensity={0.5}
+      metalness={0.8}
+      roughness={0.15}
+    />
+  );
+
+  const geo: Record<string, JSX.Element> = {
+    bolt:  <octahedronGeometry args={[0.22, 0]} />,  // lightning bolt / electrician
+    drop:  <sphereGeometry args={[0.18, 8, 8]} />,   // water drop / plumber
+    brush: <cylinderGeometry args={[0.1, 0.06, 0.42, 8]} />, // paint brush / painter
+    beam:  <boxGeometry args={[0.38, 0.1, 0.1]} />,  // timber beam / carpenter
+    tile:  <boxGeometry args={[0.22, 0.22, 0.06]} />, // tile / tiler
+  };
+
+  return (
+    <mesh ref={meshRef} position={position}>
+      {geo[shape]}
+      {mat}
+    </mesh>
+  );
+}
+
+// ─── Orbiting ring around the spanner ─────────────────────────────────────
 function OrbitRing({
   radius,
   speed,
   tilt,
-  color,
 }: {
   radius: number;
   speed: number;
   tilt: [number, number, number];
-  color: string;
 }) {
-  const groupRef = useRef<THREE.Group>(null!);
-
+  const ref = useRef<THREE.Mesh>(null!);
   useFrame(({ clock }) => {
-    groupRef.current.rotation.y = clock.getElapsedTime() * speed;
+    ref.current.rotation.y = clock.getElapsedTime() * speed;
   });
 
   return (
-    <group ref={groupRef} rotation={tilt}>
-      {/* Ring tube */}
-      <mesh>
-        <torusGeometry args={[radius, 0.008, 6, 120]} />
-        <meshBasicMaterial color={color} transparent opacity={0.45} />
-      </mesh>
-
-      {/* Orbiting bright dot */}
-      <mesh position={[radius, 0, 0]}>
-        <sphereGeometry args={[0.055, 12, 12]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={3}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-// ─── Floating satellite shards ─────────────────────────────────────────────
-function Shard({
-  position,
-  speed,
-  color,
-}: {
-  position: [number, number, number];
-  speed: number;
-  color: string;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null!);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime() * speed;
-    meshRef.current.rotation.x = t;
-    meshRef.current.rotation.z = t * 0.7;
-    meshRef.current.position.y = position[1] + Math.sin(t * 0.8) * 0.3;
-  });
-
-  return (
-    <mesh ref={meshRef} position={position}>
-      <octahedronGeometry args={[0.12, 0]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={1.5}
-        roughness={0.2}
-        metalness={0.9}
-      />
+    <mesh ref={ref} rotation={tilt}>
+      <torusGeometry args={[radius, 0.007, 6, 100]} />
+      <meshBasicMaterial color={GOLD} transparent opacity={0.25} />
     </mesh>
   );
 }
 
-// ─── Mouse parallax camera ─────────────────────────────────────────────────
-function ParallaxCamera() {
-  const { camera } = useThree();
-  const target = useRef({ x: 0, y: 0 });
+// ─── Warm dust particles ───────────────────────────────────────────────────
+function DustParticles() {
+  const ref = useRef<THREE.Points>(null!);
 
-  useFrame(({ pointer }) => {
-    target.current.x += (pointer.x * 0.8 - target.current.x) * 0.04;
-    target.current.y += (pointer.y * 0.5 - target.current.y) * 0.04;
-    camera.position.x = target.current.x;
-    camera.position.y = target.current.y;
-    camera.lookAt(0, 0, 0);
-  });
-
-  return null;
-}
-
-// ─── Floating data nodes (small spheres on paths) ─────────────────────────
-function DataNodes() {
-  const nodes = useMemo(() => {
-    return Array.from({ length: 8 }, (_, i) => ({
-      angle: (i / 8) * Math.PI * 2,
-      radius: 2.8 + (i % 3) * 0.4,
-      speed: 0.15 + i * 0.03,
-      y: Math.sin(i * 1.1) * 0.6,
-      color: i % 2 === 0 ? '#c4b5fd' : '#60a5fa',
-    }));
+  const { geo, speeds } = useMemo(() => {
+    const count = 80;
+    const positions = new Float32Array(count * 3);
+    const speeds = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3]     = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 6;
+      speeds[i] = 0.003 + Math.random() * 0.007;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return { geo: g, speeds };
   }, []);
 
-  return (
-    <>
-      {nodes.map((node, i) => (
-        <AnimatedNode key={i} {...node} />
-      ))}
-    </>
-  );
-}
-
-function AnimatedNode({
-  angle,
-  radius,
-  speed,
-  y,
-  color,
-}: {
-  angle: number;
-  radius: number;
-  speed: number;
-  y: number;
-  color: string;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null!);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime() * speed + angle;
-    meshRef.current.position.x = Math.cos(t) * radius;
-    meshRef.current.position.z = Math.sin(t) * radius;
-    meshRef.current.position.y = y + Math.sin(clock.getElapsedTime() * 0.6 + angle) * 0.2;
+  useFrame(() => {
+    const pos = geo.attributes.position.array as Float32Array;
+    for (let i = 0; i < 80; i++) {
+      pos[i * 3 + 1] += speeds[i];
+      if (pos[i * 3 + 1] > 7) pos[i * 3 + 1] = -7;
+    }
+    geo.attributes.position.needsUpdate = true;
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[0.06, 8, 8]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={2}
-      />
-    </mesh>
+    <points ref={ref} geometry={geo}>
+      <pointsMaterial color={AMBER} size={0.045} transparent opacity={0.55} sizeAttenuation />
+    </points>
   );
 }
 
-// ─── Inner scene (everything 3D) ───────────────────────────────────────────
+// ─── Scene contents ────────────────────────────────────────────────────────
 function Scene() {
   return (
     <>
-      <ParallaxCamera />
+      {/* Warm Australian sun key light */}
+      <ambientLight intensity={0.18} />
+      <pointLight color={GOLD}  intensity={4}   distance={10} position={[ 2, 3,  3]} />
+      <pointLight color={ELEC}  intensity={1.8}  distance={8}  position={[-3, 1,  1]} />
+      <pointLight color="#fff8e7" intensity={1.2} distance={12} position={[ 0, -3, 2]} />
 
-      {/* Ambient + directional lights */}
-      <ambientLight intensity={0.2} />
-      <pointLight color="#8b5cf6" intensity={4} distance={8} position={[0, 0, 3]} />
-      <pointLight color="#3b82f6" intensity={2} distance={10} position={[4, 3, -2]} />
-      <pointLight color="#ec4899" intensity={1.5} distance={8} position={[-4, -2, 2]} />
+      {/* Far stars */}
+      <Stars radius={70} depth={50} count={2000} factor={2.5} fade speed={0.4} />
 
-      {/* Stars far background */}
-      <Stars radius={80} depth={60} count={3000} factor={3} fade speed={0.5} />
-
-      {/* Central orb */}
-      <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.5}>
-        <CoreOrb />
+      {/* Central spanner */}
+      <Float speed={1.2} floatIntensity={0.4} rotationIntensity={0.15}>
+        <Spanner />
       </Float>
 
-      {/* Orbiting rings at different tilts */}
-      <OrbitRing radius={2.6} speed={0.4}  tilt={[0.3, 0, 0]}  color="#8b5cf6" />
-      <OrbitRing radius={3.1} speed={-0.25} tilt={[1.1, 0.4, 0]} color="#60a5fa" />
-      <OrbitRing radius={2.2} speed={0.6}  tilt={[0.7, 1.0, 0.5]} color="#c084fc" />
+      {/* Orbit rings around spanner */}
+      <OrbitRing radius={2.4} speed={ 0.3} tilt={[0.3, 0,    0  ]} />
+      <OrbitRing radius={2.9} speed={-0.2} tilt={[1.0, 0.4,  0  ]} />
 
-      {/* Floating crystal shards */}
-      <Shard position={[ 3.2, 1.4, -1.0]} speed={0.8} color="#a78bfa" />
-      <Shard position={[-2.8, -1.2, 0.5]} speed={0.6} color="#818cf8" />
-      <Shard position={[ 2.0, -2.2, 1.0]} speed={1.0} color="#c084fc" />
-      <Shard position={[-1.8, 2.4, -0.8]} speed={0.7} color="#60a5fa" />
-      <Shard position={[ 3.8, -0.5, 0.2]} speed={0.9} color="#e879f9" />
+      {/* Trade tool icons floating outward */}
+      <TradeTool position={[-3.0,  0.8, -0.5]} color={ELEC}  shape="bolt"  speed={0.7} offset={0}    />
+      <TradeTool position={[ 2.8,  1.2,  0.3]} color={PLUMB} shape="drop"  speed={0.5} offset={1.2}  />
+      <TradeTool position={[-2.6, -1.5,  0.8]} color={PAINT} shape="brush" speed={0.9} offset={2.4}  />
+      <TradeTool position={[ 2.4, -1.8, -0.4]} color={CARP}  shape="beam"  speed={0.6} offset={3.6}  />
+      <TradeTool position={[ 0.4,  3.0, -1.0]} color={ROOF}  shape="tile"  speed={0.8} offset={4.8}  />
+      <TradeTool position={[-0.6, -3.2,  0.6]} color={GOLD}  shape="bolt"  speed={0.6} offset={0.9}  />
 
-      {/* Data nodes orbiting */}
-      <DataNodes />
-
-      {/* Sparkles around core */}
-      <Sparkles
-        count={120}
-        scale={7}
-        size={1.2}
-        speed={0.3}
-        opacity={0.6}
-        color="#c4b5fd"
-      />
-      <Sparkles
-        count={60}
-        scale={12}
-        size={0.8}
-        speed={0.2}
-        opacity={0.3}
-        color="#60a5fa"
-      />
-
-      {/* Post-processing */}
-      <EffectComposer>
-        <Bloom
-          intensity={1.4}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.8}
-          mipmapBlur
-        />
-        <ChromaticAberration
-          blendFunction={BlendFunction.NORMAL}
-          offset={new THREE.Vector2(0.0008, 0.0008)}
-        />
-      </EffectComposer>
+      {/* Warm dust */}
+      <DustParticles />
     </>
   );
 }
 
-// ─── Exported canvas wrapper ───────────────────────────────────────────────
-import { ThreeErrorBoundary } from './ThreeErrorBoundary';
-
+// ─── Export ────────────────────────────────────────────────────────────────
 function HeroSceneInner() {
   return (
     <Canvas
-      camera={{ position: [0, 0, 7], fov: 55 }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      dpr={[1, 1.5]}
+      camera={{ position: [0, 0, 7], fov: 52 }}
+      gl={{ antialias: true, alpha: true }}
+      dpr={[1, 1]}
       style={{ position: 'absolute', inset: 0 }}
     >
       <Scene />

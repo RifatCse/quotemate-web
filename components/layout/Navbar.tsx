@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import GetAppButton from "@/components/ui/GetAppButton";
 
 const NAV_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
@@ -65,13 +66,16 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* CTA */}
-        <a
-          href="#waitlist"
-          className="px-4 py-2 rounded-lg bg-[--primary] text-white text-sm font-semibold hover:bg-purple-500 transition-colors"
-        >
-          Join Waitlist
-        </a>
+        {/* CTA row */}
+        <div className="flex items-center gap-3">
+          <GetAppButton size="sm" className="hidden sm:inline-flex" />
+          <a
+            href="#waitlist"
+            className="px-4 py-2 rounded-lg bg-[--primary] text-white text-sm font-semibold hover:bg-purple-500 transition-colors"
+          >
+            Join Waitlist
+          </a>
+        </div>
       </div>
     </header>
   );

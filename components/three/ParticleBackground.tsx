@@ -37,10 +37,10 @@ function Particles({ count = 120 }: { count?: number }) {
   return (
     <points ref={meshRef} geometry={geometry}>
       <pointsMaterial
-        color="#8b5cf6"
+        color="#f59e0b"
         size={0.04}
         transparent
-        opacity={0.5}
+        opacity={0.45}
         sizeAttenuation
       />
     </points>
